@@ -8,6 +8,8 @@
 	"classPath"    :  "lib",
 	"releasenote"  :  "First public preview",
 	"contributors" :  ["elebeta", "jonasmalacofilho"],
-	"dependencies" :  {}
+	"dependencies" :  {
+		"jonas-haxe" : ""
+	}
 }
 
