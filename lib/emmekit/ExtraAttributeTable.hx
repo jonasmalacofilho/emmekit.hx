@@ -4,10 +4,10 @@ import emmekit.Element;
 
 class ExtraAttributeTable<A> {
 	
-	var t : Hash<ExtraAttributeDefinition<A>>;
+	var t : Map<String, ExtraAttributeDefinition<A>>;
 
 	public function new() {
-		t = new Hash();
+		t = new Map();
 	}
 	
 	/**
@@ -105,19 +105,19 @@ class ExtraAttributeTable<A> {
 /**
  * Element hash table, hashed by element internal id
  */
-private typedef TElementIdHash<A> = IntHash<A>;
+private typedef TElementIdMap<A> = Map<Int, A>;
 
 /**
  * Extra attribute definition
  * Contains the default value, the join function and the values other than the defualt
  */
 private class ExtraAttributeDefinition<A> {
-	public var v( default, null ) : TElementIdHash<A>;
+	public var v( default, null ) : TElementIdMap<A>;
 	public var d( default, null ) : A;
 	public var j( default, null ) : A -> A -> A;
 	
 	public function new( default_value, join ) {
-		v = new TElementIdHash();
+		v = new TElementIdMap();
 		d = default_value;
 		j = join;
 	}

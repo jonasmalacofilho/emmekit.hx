@@ -32,11 +32,11 @@ class Node extends Element {
 	public var ui3 : Float;
 	public var lab : String;
 
-	public var xi( getXi, never ) : Float;
-	public var yi( getYi, never ) : Float;
+	public var xi( get_xi, never ) : Float;
+	public var yi( get_yi, never ) : Float;
 
-	function getXi(): Float { return pt.x; }
-	function getYi(): Float { return pt.y; }
+	function get_xi(): Float { return pt.x; }
+	function get_yi(): Float { return pt.y; }
 	
 	/**
 	 * Links from and to indices
@@ -247,7 +247,7 @@ class Node extends Element {
 	public inline function link_to_filter( f : Link -> Bool ) : TAdjContainer<Link> { return link_to.filter( f ); }
 	
 	public function neighbors() : List<Node> {
-		var h = new IntHash();
+		var h = new Map();
 		for ( lk in link_from )
 			if ( !h.exists( lk.to.i ) )
 				h.set( lk.to.i, lk.to );

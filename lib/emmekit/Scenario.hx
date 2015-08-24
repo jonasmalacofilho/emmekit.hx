@@ -32,17 +32,17 @@ class Scenario {
 	public var scenario_name : String;
 	public var last_id( default, null ) : TElementId;
 	
-	var nodes : IntHash<Node>;
+	var nodes : Map<Int, Node>;
 	public var node_attributes( default, null ) : ExtraAttributeTable<Dynamic>;
 	public var node_count( default, null ) : Int;
 	var node_r_tree : RjTree<Node>;
 	
-	var links : Hash<Link>;
+	var links : Map<String, Link>;
 	public var link_attributes( default, null ) : ExtraAttributeTable<Dynamic>;
 	public var link_count( default, null ) : Int;
 	var link_r_tree : RjTree<Link>;
 	
-	var lines : Hash<Line>;
+	var lines : Map<String, Line>;
 	public var line_attributes( default, null ) : ExtraAttributeTable<Dynamic>;
 	public var line_count( default, null ) : Int;
 	
@@ -52,17 +52,17 @@ class Scenario {
 		this.scenario_name = scenario_name;
 		last_id = INVALID_ID;
 		
-		nodes = new IntHash();
+		nodes = new Map();
 		node_attributes = new ExtraAttributeTable();
 		node_count = 0;
 		node_r_tree = new RjTree();
 		
-		links = new Hash();
+		links = new Map();
 		link_attributes = new ExtraAttributeTable();
 		link_count = 0;
 		link_r_tree = new RjTree();
 		
-		lines = new Hash();
+		lines = new Map();
 		line_attributes = new ExtraAttributeTable();
 		line_count = 0;
 		
@@ -199,7 +199,7 @@ class Scenario {
 	public function node_search_rectangle( xi : Float, yi : Float, xj : Float, yj : Float ) : List<Node> {
 		if ( xj < xi || yj < yi )
 			error( 'xj < xi || yj < yi' );
-		return Lambda.list( { iterator : callback( node_r_tree.search, xi, yi, xj - xi, yj - yi ) } );
+		return Lambda.list( { iterator : node_r_tree.search.bind( xi, yi, xj - xi, yj - yi ) } );
 	}
 	
 	public function node_search_radius( xi : Float, yi : Float, radius : Float ) : List<Node> {
@@ -290,13 +290,13 @@ class Scenario {
 	public function link_search_rectangle( xi : Float, yi : Float, xj : Float, yj : Float ) : List<Link> {
 		if ( xj < xi || yj < yi )
 			error( 'xj < xi || yj < yi' );
-		return Lambda.list( { iterator : callback( link_r_tree.search, xi, yi, xj - xi, yj - yi ) } );
+		return Lambda.list( { iterator : link_r_tree.search.bind( xi, yi, xj - xi, yj - yi ) } );
 	}
 	
 	public function link_search_2d_interval( xi : Float, yi : Float, width : Float, height : Float, over_scan = .1 ) : List<Link> {
 		var dx = rev_distance_dx( xi, yi, width, over_scan );
 		var dy = rev_distance_dy( xi, yi, height, over_scan );
-		return Lambda.list( { iterator : callback( link_r_tree.search, xi - dx, yi - dy, dx * 2., dy * 2. ) } );
+		return Lambda.list( { iterator : link_r_tree.search.bind( xi - dx, yi - dy, dx * 2., dy * 2. ) } );
 	}
 	
 	static inline function link_key( i : TNodeNumber, j : TNodeNumber ) : TLinkKey { return Element.link_key( i, j ); }
@@ -495,7 +495,7 @@ class Scenario {
 		
 		var splitrx = ~/[ ]+/g;
 		
-		var dictionary = new Hash();
+		var dictionary = new Map();
 		dictionary.set( 'i', 'i' );
 		dictionary.set( 'inode', 'i' );
 		dictionary.set( 'xi', 'xi' );
@@ -536,7 +536,7 @@ class Scenario {
 		dictionary.set( 'ut3', 'ut3' );
 		dictionary.set( 'vertex', 'vertex' );
 		
-		var node_next = new Hash();
+		var node_next = new Map();
 		node_next.set( '', 'centroid' );
 		node_next.set( 'centroid', 'i' );
 		node_next.set( 'i', 'xi' );
@@ -547,7 +547,7 @@ class Scenario {
 		node_next.set( 'ui3', 'lab' );
 		node_next.set( 'lab', '' );
 		
-		var link_next = new Hash();
+		var link_next = new Map();
 		link_next.set( '', 'i' );
 		link_next.set( 'i', 'j' );
 		link_next.set( 'j', 'len' );
@@ -560,7 +560,7 @@ class Scenario {
 		link_next.set( 'ul2', 'ul3' );
 		link_next.set( 'ul3', '' );
 		
-		var line_next = new Hash();
+		var line_next = new Map();
 		line_next.set( '', 'line' );
 		line_next.set( 'line', 'mod' );
 		line_next.set( 'mod', 'veh' );
@@ -572,7 +572,7 @@ class Scenario {
 		line_next.set( 'ut2', 'ut3' );
 		line_next.set( 'ut3', '' );
 		
-		var shapepoint_next = new Hash();
+		var shapepoint_next = new Map();
 		shapepoint_next.set( '', 'i' );
 		shapepoint_next.set( 'i', 'j' );
 		shapepoint_next.set( 'j', 'vertex' );
@@ -653,7 +653,7 @@ class Scenario {
 				error( 'Cannot understand this dwt: ' + s );
 		};
 		
-		var tempInflections: IntHash<Array<ShapePoint>>;
+		var tempInflections: Map<Int, Array<ShapePoint>>;
 
 		var line_number = 0;
 		var default_error = error;
@@ -686,7 +686,7 @@ class Scenario {
 							case 'linkvertices':
 								rt = TShapePoint;
 								print( 'Reading link shape points' );
-								tempInflections = new IntHash();
+								tempInflections = new Map();
 								for ( x in links )
 									tempInflections.set( x.id, x.inflections.toArray() );
 							default : error( 'Unknown record type: "' + a[1] + '"' );
@@ -1037,8 +1037,8 @@ class Scenario {
 		warning = default_warning;
 		
 		#if RJTREE_DEBUG
-		print( Std.format( 'Nodes RTree length = ${node_r_tree.length}, max depth = ${node_r_tree.maxDepth()}' ) );
-		print( Std.format( 'Links RTree length = ${link_r_tree.length}, max depth = ${link_r_tree.maxDepth()}' ) );
+		print( 'Nodes RTree length = ${node_r_tree.length}, max depth = ${node_r_tree.maxDepth()}' );
+		print( 'Links RTree length = ${link_r_tree.length}, max depth = ${link_r_tree.maxDepth()}' );
 		#end
 		
 		return i;
@@ -1130,9 +1130,9 @@ class Scenario {
 		for ( x in xs ) {
 			var i = 0;
 			var id = x.fr.i + ' ' + x.to.i;
-			buf.add( Std.format( 'r $id\n' ) );
+			buf.add( 'r $id\n' );
 			for ( sp in x.inflections )
-				buf.add( Std.format( 'a $id ${++i} ${sp}\n' ) );
+				buf.add( 'a $id ${++i} ${sp}\n' );
 		}
 		
 		o.writeString( buf.toString() );
@@ -1314,21 +1314,21 @@ class Scenario {
 		SERIALIZATION_INSTANCE = this;
 		var dataFormat = s.unserialize();
 		if ( dataFormat != SERIALIZATION_FORMAT )
-			warning( Std.format( 'serialization format used is in version "$dataFormat", while current binary uses "$SERIALIZATION_FORMAT"' ) );
+			warning( 'serialization format used is in version "$dataFormat", while current binary uses "$SERIALIZATION_FORMAT"' );
 		this.scenario_name = s.unserialize();
 		last_id = INVALID_ID;
 
-		nodes = new IntHash();
+		nodes = new Map();
 		node_attributes = new ExtraAttributeTable();
 		node_count = 0;
 		node_r_tree = new RjTree();
 		
-		links = new Hash();
+		links = new Map();
 		link_attributes = new ExtraAttributeTable();
 		link_count = 0;
 		link_r_tree = new RjTree();
 		
-		lines = new Hash();
+		lines = new Map();
 		line_attributes = new ExtraAttributeTable();
 		line_count = 0;
 		

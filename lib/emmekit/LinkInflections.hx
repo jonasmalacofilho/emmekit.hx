@@ -5,7 +5,7 @@ import emmekit.Element;
 class LinkInflections implements ArrayAccess<ShapePoint> {
 	
 	var data: Array<ShapePoint>;
-	public var length( getLength, null ): Int;
+	public var length( get_length, null ): Int;
 
 	public function new( inflections: Iterable<ShapePoint> ) {
 		data = Lambda.array( inflections );
@@ -46,7 +46,7 @@ class LinkInflections implements ArrayAccess<ShapePoint> {
 		return null;
 	}
 
-	function getLength(): Int {
+	function get_length(): Int {
 		return data.length;
 	}
 

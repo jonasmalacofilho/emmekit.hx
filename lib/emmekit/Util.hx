@@ -60,7 +60,7 @@ class Util {
 	static function main() {
 		var tests = [ 'a,b,c,d', '"a,b",c,d', 'a,b,"c,d"', 'a,"b,c",d', 'a,"b,c,"d', 'a",b,c",d', 'a,"b,\'c\',"d', 'a",b,\'c\'",d', '"a,b",c,d', 'a,b,"c,d"', 'a,"b,c",d' ];
 		for ( x in tests )
-			trace( Std.format( '[${x}] => ${emmeSplit( x, "," ).join( "-" )}' ) );
+			trace( '[${x}] => ${emmeSplit( x, "," ).join( "-" )}' );
 	}
 	
 }
