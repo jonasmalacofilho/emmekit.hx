@@ -1,9 +1,9 @@
 package emmekit;
 
 import emmekit.Element;
-import jonas.Maybe;
-using jonas.LazyLambda;
-using jonas.NumberPrinter;
+import vehjo.Maybe;
+using vehjo.LazyLambda;
+using vehjo.NumberPrinter;
 
 private typedef TAdjContainer<A> = List<A>;
 private typedef TSegmentContainer<A> = List<A>;

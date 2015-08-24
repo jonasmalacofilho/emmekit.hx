@@ -1,6 +1,6 @@
 package emmekit;
 
-using jonas.NumberPrinter;
+using vehjo.NumberPrinter;
 
 class Segment extends Element {
 

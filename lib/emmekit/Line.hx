@@ -1,9 +1,9 @@
 package emmekit;
 
 import emmekit.Element;
-import jonas.Maybe;
+import vehjo.Maybe;
 using emmekit.Util;
-using jonas.NumberPrinter;
+using vehjo.NumberPrinter;
 
 private typedef TSegmentContainer<A> = Array<A>;
 
@@ -262,12 +262,12 @@ class Line extends Element {
 		var p = start.pos;
 		for ( i in 0...len )
 			if ( segments.length > p ) {
-				jonas.macro.Debug.assertTrue( segments[p].pos == p );
+				vehjo.macro.Debug.assertTrue( segments[p].pos == p );
 				segments[p].delete2( true );
 			}
 
 		#if debug
-		jonas.macro.Debug.assertTrue( segment_count() == expectedFinalLength - replace_by.length );
+		vehjo.macro.Debug.assertTrue( segment_count() == expectedFinalLength - replace_by.length );
 		#end
 
 		// inserting new segments
@@ -284,7 +284,7 @@ class Line extends Element {
 				settings( i, s.segment_add( line, p++, replace_by[i].i ) );
 
 		#if debug
-		jonas.macro.Debug.assertTrue( segment_count() == expectedFinalLength );
+		vehjo.macro.Debug.assertTrue( segment_count() == expectedFinalLength );
 		#end
 
 	}

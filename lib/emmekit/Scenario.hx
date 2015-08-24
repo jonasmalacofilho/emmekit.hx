@@ -2,17 +2,17 @@ package emmekit;
 
 import emmekit.Element;
 import haxe.io.*;
-import jonas.Maybe;
-import jonas.ds.RjTree;
-import jonas.ds.queue.SimpleFIFO;
-import jonas.macro.Error;
+import vehjo.Maybe;
+import vehjo.ds.RjTree;
+import vehjo.ds.queue.SimpleFIFO;
+import vehjo.macro.Error;
 using Math;
 using Std;
 using emmekit.Util;
-using jonas.LazyLambda;
-using jonas.sort.Heapsort;
+using vehjo.LazyLambda;
+using vehjo.sort.Heapsort;
 
-private typedef L = jonas.LazyLambda;
+private typedef L = vehjo.LazyLambda;
 
 class Scenario {
 

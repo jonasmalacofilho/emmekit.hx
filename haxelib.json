@@ -2,14 +2,14 @@
 	"name"         :  "emmekit",
 	"url"          :  "https://github.com/Elebeta/emmekit.hx",
 	"license"      :  "BSD",
-	"tags"         :  ["parser"],
+	"tags"         :  [],
 	"description"  :  "Toolkit for reading, manipulating and writing Emme networks",
 	"version"      :  "0.1.0",
 	"classPath"    :  "lib",
 	"releasenote"  :  "First public preview",
-	"contributors" :  ["elebeta", "jonasmalacofilho"],
+	"contributors" :  ["jonasmalacofilho", "elebeta"],
 	"dependencies" :  {
-		"jonas-haxe" : ""
+		"vehjo" : ""
 	}
 }
 

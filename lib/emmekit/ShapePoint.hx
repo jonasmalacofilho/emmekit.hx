@@ -1,7 +1,7 @@
 package emmekit;
 
-import jonas.Vector;
-using jonas.NumberPrinter;
+import vehjo.Vector;
+using vehjo.NumberPrinter;
 
 class ShapePoint extends Vector {
 

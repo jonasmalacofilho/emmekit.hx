@@ -1,12 +1,12 @@
 package emmekit;
 
-import jonas.ds.RTree;
-import jonas.LazyLambda;
-import jonas.MathExtension;
-import jonas.Maybe;
+import vehjo.ds.RTree;
+import vehjo.LazyLambda;
+import vehjo.MathExtension;
+import vehjo.Maybe;
 import emmekit.Element;
 import emmekit.Scenario;
-using jonas.NumberPrinter;
+using vehjo.NumberPrinter;
 
 class Link extends Element {
 
