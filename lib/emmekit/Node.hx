@@ -1,8 +1,7 @@
 package emmekit;
 
-import jonas.Maybe;
 import emmekit.Element;
-import emmekit.Scenario;
+import jonas.Maybe;
 using jonas.LazyLambda;
 using jonas.NumberPrinter;
 
@@ -10,20 +9,20 @@ private typedef TAdjContainer<A> = List<A>;
 private typedef TSegmentContainer<A> = List<A>;
 
 class Node extends Element {
-	
+
 	/**
 	 * Printing definitions
 	 */
-	
+
 	public static inline var DEFAULT_USER_DATA_VALUE = 0.;
 	public static inline var DEFAULT_LABEL = '0000';
 	public static inline var COORDINATE_PRECISION = 6;
 	public static inline var USER_DATA_PRECISION = 2;
-	
+
 	/**
 	 * Basic Emme Node struture
 	 */
-	
+
 	public var is_zone( default, null ) : Bool;
 	public var i( default, null ) : TNodeNumber;
 	public var pt( default, null ): ShapePoint;
@@ -37,24 +36,24 @@ class Node extends Element {
 
 	function get_xi(): Float { return pt.x; }
 	function get_yi(): Float { return pt.y; }
-	
+
 	/**
 	 * Links from and to indices
 	 */
-	
+
 	var link_from : TAdjContainer<Link>;
 	var link_to : TAdjContainer<Link>;
-	
+
 	/**
 	 * Segments index
 	 */
-	
+
 	var segments : TSegmentContainer<Segment>;
 
 	/**
-	 * Basic API 
+	 * Basic API
 	 */
-	
+
 	public function new( s : Scenario, is_zone : Bool, i : TNodeNumber, xi : Float, yi : Float, ui1 : Float, ui2 : Float, ui3 : Float, lab : String ) {
 		this.is_zone = is_zone;
 		this.i = i;
@@ -63,25 +62,25 @@ class Node extends Element {
 		this.ui2 = ui2;
 		this.ui3 = ui3;
 		this.lab = lab;
-		
+
 		link_from = new TAdjContainer();
 		link_to = new TAdjContainer();
 		segments = new TSegmentContainer();
-		
+
 		super( s );
 		id = s.node_register( this );
 	}
-	
+
 	public inline function copy( s : Scenario, is_zone : Bool, i : TNodeNumber, xi : Float, yi : Float ) : Node {
 		var x = new Node( s, is_zone, i, xi, yi, ui1, ui2, ui3, lab );
 		Element.copyAllAttributes( s.node_attributes, this, x );
 		return x;
 	}
-	
+
 	override function scenario_unregister( s : Scenario ) : Void {
 		s.node_unregister( this );
 	}
-	
+
 	public override function delete() : Bool {
 		if ( !deleted() ) {
 			while ( !segments.isEmpty() )
@@ -95,7 +94,7 @@ class Node extends Element {
 		else
 			return false;
 	}
-	
+
 	public function delete_after_joining() : Bool {
 		//trace( segments.length );
 		if ( !deleted() ) {
@@ -121,13 +120,13 @@ class Node extends Element {
 		else
 			return false;
 	}
-	
+
 	public function print_to_buffer( b : StringBuf, compact : Bool, skip_defaults : Bool ) : Void {
-		
+
 		b.add( is_zone ? '*' : ' ' );
-		
+
 		if ( compact ) {
-			
+
 			b.add( i );
 			b.add( ' ' ); b.add( xi.printDecimal( 1, COORDINATE_PRECISION ) );
 			b.add( ' ' ); b.add( yi.printDecimal( 1, COORDINATE_PRECISION ) );
@@ -143,10 +142,10 @@ class Node extends Element {
 			if ( !skip_defaults || DEFAULT_LABEL != lab ) {
 				b.add( ' ' ); b.add( lab.substr( 0, 4 ) );
 			}
-			
+
 		}
 		else { // verbose
-			
+
 			b.add( 'i=' ); b.add( i );
 			b.add( ' xi=' ); b.add( xi.printDecimal( 1, COORDINATE_PRECISION ) );
 			b.add( ' yi=' ); b.add( yi.printDecimal( 1, COORDINATE_PRECISION ) );
@@ -162,46 +161,46 @@ class Node extends Element {
 			if ( !skip_defaults || DEFAULT_LABEL != lab ) {
 				b.add( ' lab=' ); b.add( lab.substr( 0, 4 ) );
 			}
-			
+
 		}
-		
+
 		if ( 4 < lab.length ) {
 			b.add( ' / ' );
 			b.add( lab.substr( 4 ) );
 		}
-		
+
 	}
-	
+
 	public inline function toString() : String {
 		return print();
 	}
-	
+
 	public inline function print( compact = false, skip_defaults = false ) : String {
 		var b = new StringBuf();
 		print_to_buffer( b, compact, skip_defaults );
 		return b.toString();
 	}
-	
+
 	public override function error( msg : String ) : Void {
 		s.node_error( i, msg );
 	}
-	
+
 	public function distance_to( x : Node ) : Float {
 		return s.distance( xi, yi, x.xi, x.yi );
 	}
-	
+
 	public function nodes_in_radius( r : Float ) : List<Node> {
 		return s.node_search_radius( xi, yi, r );
 	}
-	
+
 	/** Extra attributes API **/
-	
+
 	public override function get( name : String ) : Dynamic { return s.node_attributes.get( name, id ); }
-	
+
 	public override function set( name : String, value : Dynamic ) : Dynamic { return s.node_attributes.set( name, id, value ); }
-	
+
 	/** Links API **/
-	
+
 	public inline function link_register( x : Link ) : Void {
 		if ( this == x.fr )
 			link_from.add( x );
@@ -210,7 +209,7 @@ class Node extends Element {
 		else
 			error( 'Could not register link ' + x.key );
 	}
-	
+
 	public inline function link_unregister( x : Link ) : Void {
 		if ( this == x.fr )
 			link_from.remove( x );
@@ -219,33 +218,33 @@ class Node extends Element {
 		else
 			error( 'Could not unregister link ' + x.key );
 	}
-	
+
 	public inline function link_from_iterator() : Iterator<Link> { return link_from.iterator(); }
-	
+
 	public inline function link_to_iterator() : Iterator<Link> { return link_to.iterator(); }
-	
+
 	public inline function link_from_count() : Int { return link_from.length; }
-	
+
 	public inline function link_to_count() : Int { return link_to.length; }
-	
+
 	public function link_from_get( x : Node ) : Maybe<Link> {
 		for ( lk in link_from )
 			if ( x == lk.fr )
 				return just( lk );
 		return empty;
 	}
-	
+
 	public function link_to_get( x : Node ) : Maybe<Link> {
 		for ( lk in link_to )
 			if ( x == lk.to )
 				return just( lk );
 		return empty;
 	}
-	
+
 	public inline function link_from_filter( f : Link -> Bool ) : TAdjContainer<Link> { return link_from.filter( f ); }
-	
+
 	public inline function link_to_filter( f : Link -> Bool ) : TAdjContainer<Link> { return link_to.filter( f ); }
-	
+
 	public function neighbors() : List<Node> {
 		var h = new Map();
 		for ( lk in link_from )
@@ -256,23 +255,23 @@ class Node extends Element {
 				h.set( lk.fr.i, lk.fr );
 		return Lambda.list( h );
 	}
-	
+
 	/** Segments (Lines) API **/
-	
+
 	public inline function segment_register( x : Segment ) : Void {
 		segments.add( x );
 	}
-	
+
 	public inline function segment_unregister( x : Segment ) : Void {
 		segments.remove( x );
 	}
-	
+
 	public inline function segment_iterator() : Iterator<Segment> {
 		return segments.iterator();
 	}
-	
+
 	public inline function segment_count() : Int { return segments.length; }
-	
+
 	public inline function segment_filter( f : Segment -> Bool ) : TSegmentContainer<Segment> { return segments.filter( f ); }
 
 	/**
@@ -307,5 +306,5 @@ class Node extends Element {
 
 		id = this.s.node_register( this );
 	}
-	
+
 }

@@ -1,12 +1,8 @@
 package emmekit;
 
-using Lambda;
-
 import emmekit.Element;
-import emmekit.Scenario;
-using emmekit.Util;
-
 import jonas.Maybe;
+using emmekit.Util;
 using jonas.NumberPrinter;
 
 private typedef TSegmentContainer<A> = Array<A>;
@@ -14,15 +10,15 @@ private typedef TSegmentContainer<A> = Array<A>;
 class Line extends Element {
 
 	/** Definitions **/
-	
+
 	public static inline var DEFAULT_USER_DATA_VALUE = 0.;
 	public static inline var HEADWAY_PRECISION = 2;
 	public static inline var SPEED_PRECISION = 2;
 	public static inline var DESCRIPTION_LENGTH = 20;
 	public static inline var USER_DATA_PRECISION = 2;
-	
+
 	/** Basic structure **/
-	
+
 	public var line( default, null ) : TLineName;
 	public var mode : String;
 	public var veh : Int;
@@ -33,9 +29,9 @@ class Line extends Element {
 	public var ut2 : Float;
 	public var ut3 : Float;
 	var segments : TSegmentContainer<Segment>;
-	
+
 	/** Basic API **/
-	
+
 	public function new( s : Scenario, line : TLineName, mode : String, veh : Int, headway : Float, speed : Float, descr : String, ut1 : Float, ut2 : Float, ut3 : Float ) {
 		this.line = line;
 		this.mode = mode;
@@ -46,13 +42,13 @@ class Line extends Element {
 		this.ut1 = ut1;
 		this.ut2 = ut2;
 		this.ut3 = ut3;
-		
+
 		segments = new TSegmentContainer();
-		
+
 		super( s );
 		id = s.line_register( this );
 	}
-	
+
 	public inline function copy( s : Scenario, line : TLineName, copy_segments : Bool ) : Line {
 		var a = new Line( s, line, mode, veh, headway, speed, descr, ut1, ut2, ut3 );
 		if ( copy_segments )
@@ -65,11 +61,11 @@ class Line extends Element {
 		Element.copyAllAttributes( s.line_attributes, this, a );
 		return a;
 	}
-	
+
 	override function scenario_unregister( s : Scenario ) : Void {
 		s.line_unregister( this );
 	}
-	
+
 	public override function delete() : Bool {
 		if ( !deleted() ) {
 			var a = true;
@@ -80,11 +76,11 @@ class Line extends Element {
 		else
 			return false;
 	}
-	
+
 	public function print_to_buffer( b : StringBuf, compact : Bool, skip_defaults : Bool, auto_path_mode : String ) : Void {
-		
+
 		if ( compact ) {
-			
+
 			b.add( line.quote( true ) );
 			b.add( ' ' ); b.add( mode );
 			b.add( ' ' ); b.add( veh );
@@ -100,10 +96,10 @@ class Line extends Element {
 			if ( !skip_defaults || DEFAULT_USER_DATA_VALUE != ut3 ) {
 				b.add( ' ' ); b.add( ut3.printDecimal( 1, USER_DATA_PRECISION ) );
 			}
-			
+
 		}
 		else { // verbose
-			
+
 			b.add( 'lin=' ); b.add( line.quote( true ) );
 			b.add( ' mod=' ); b.add( mode );
 			b.add( ' veh=' ); b.add( veh );
@@ -119,44 +115,44 @@ class Line extends Element {
 			if ( !skip_defaults || DEFAULT_USER_DATA_VALUE != ut3 ) {
 				b.add( ' ut3=' ); b.add( ut3.printDecimal( 1, USER_DATA_PRECISION ) );
 			}
-			
+
 		}
-		
+
 		switch ( auto_path_mode ) {
 			case 'yes': b.add( '\n path=yes' );
 			case 'ignore': b.add( '\n path=ignore' );
 			default: b.add( '\n path=no' );
 		}
-		
+
 		for ( seg in segments ) {
 			b.add( '\n ' );
 			seg.print_to_buffer( b, skip_defaults );
 		}
-		
+
 	}
-	
+
 	public inline function toString() : String {
 		return print();
 	}
-	
+
 	public inline function print( compact = false, skip_defaults = false, auto_path_mode = 'no' ) : String {
 		var b = new StringBuf();
 		print_to_buffer( b, compact, skip_defaults, auto_path_mode );
 		return b.toString();
 	}
-	
+
 	public override function error( msg : String ) : Void {
 		s.line_error( line, msg );
 	}
-	
+
 	/** Extra attributes API **/
-	
+
 	public override function get( name : String ) : Dynamic { return s.line_attributes.get( name, id ); }
-	
+
 	public override function set( name : String, value : Dynamic ) : Dynamic { return s.line_attributes.set( name, id, value ); }
-	
+
 	/** Segments API **/
-	
+
 	public function segment_register( x : Segment ) : Void {
 		if ( segments.length == x.pos ) {
 			// it's a push op
@@ -173,7 +169,7 @@ class Line extends Element {
 				segments[i].unsafe_change_postion( i );
 		}
 	}
-	
+
 	public function segment_unregister( x : Segment, ?unsafe=false ) : Void {
 		// determines the neeeded offset to ensure that no X-X exists in path
 		var offset = 1;
@@ -197,19 +193,19 @@ class Line extends Element {
 		//while ( 0 < offset-- )
 			segments.pop();
 	}
-	
+
 	public inline function segment_iterator() : Iterator<Segment> { return segments.iterator(); }
-	
+
 	public inline function segment_count() : Int { return segments.length; }
-	
+
 	public inline function segment_at( pos : Int ) : Segment { return segments[pos]; }
-	
+
 	public inline function segment_push( node : Node, board : Bool, alight : Bool, dwt : Float, ttf : Int, us1 : Float, us2 : Float, us3 : Float ) : Segment {
 		return new Segment( this, segment_count(), node, board, alight, dwt, ttf, us1, us2, us3 );
 	}
-	
+
 	/** Link segment iteraction **/
-	
+
 	public function check_links() : Bool {
 		for ( i in 1...segments.length ) {
 			var checked = false;
@@ -220,7 +216,7 @@ class Line extends Element {
 		}
 		return true;
 	}
-	
+
 	public function adjust_links( len : Maybe<Float>, typ : Int, lan : Float, vdf : Int, ul1 : Float, ul2 : Float, ul3 : Float ) : List<Link> {
 		var changed = new List();
 		for ( i in 1...segments.length ) {
@@ -236,9 +232,9 @@ class Line extends Element {
 		}
 		return changed;
 	}
-	
+
 	/** Detours **/
-	
+
 	// Detour
 	//  -  Inserts all "replace_by" segments using settings from the last
 	//      segment before "start" or default settings
@@ -292,5 +288,5 @@ class Line extends Element {
 		#end
 
 	}
-	
+
 }

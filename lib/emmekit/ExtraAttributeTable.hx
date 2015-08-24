@@ -3,23 +3,23 @@ package emmekit;
 import emmekit.Element;
 
 class ExtraAttributeTable<A> {
-	
+
 	var t : Map<String, ExtraAttributeDefinition<A>>;
 
 	public function new() {
 		t = new Map();
 	}
-	
+
 	/**
 	 * Adds attribute [name] to the table
 	 */
 	public inline function attribute_add( name : String, default_value : A, join : A -> A -> A ) : Void {
 		if ( t.exists( name ) )
 			error( 'Attribute ' + name + ' already exists.' );
-		else 
+		else
 			t.set( name, new ExtraAttributeDefinition( default_value, join ) );
 	}
-	
+
 	/**
 	 * Removes (deletes) attribute [name] to the table
 	 * Returns true if any state is changed
@@ -27,7 +27,7 @@ class ExtraAttributeTable<A> {
 	public inline function attribute_remove( name : String ) : Bool {
 		return t.remove( name );
 	}
-	
+
 	/**
 	 * Gets attribute [name] for element [id]
 	 */
@@ -40,7 +40,7 @@ class ExtraAttributeTable<A> {
 		else
 			return a.d;
 	}
-	
+
 	/**
 	 * Sets attribute [name] = [value] for element [id]
 	 * Returns [value]
@@ -55,7 +55,7 @@ class ExtraAttributeTable<A> {
 			a.v.set( id, value );
 		return value;
 	}
-	
+
 	/**
 	 * Resets (to default value) attribute [name] for element [id]
 	 * Returns true if any state is changed
@@ -66,7 +66,7 @@ class ExtraAttributeTable<A> {
 			error( 'No attribute by the name ' + name );
 		return a.v.remove( id );
 	}
-	
+
 	/**
 	 * Joins all attributes of elements [a] and [b] into element [c],
 	 * reseting those of [a] and [b] to their defaults
@@ -79,7 +79,7 @@ class ExtraAttributeTable<A> {
 			att.v.remove( b );
 		}
 	}
-	
+
 	/**
 	 * Error function that may be dynamically rebinded
 	 */
@@ -99,7 +99,7 @@ class ExtraAttributeTable<A> {
 	public function atts(): Iterable<String> {
 		return { iterator: function () return t.keys() };
 	}
-	
+
 }
 
 /**
@@ -115,7 +115,7 @@ private class ExtraAttributeDefinition<A> {
 	public var v( default, null ) : TElementIdMap<A>;
 	public var d( default, null ) : A;
 	public var j( default, null ) : A -> A -> A;
-	
+
 	public function new( default_value, join ) {
 		v = new TElementIdMap();
 		d = default_value;

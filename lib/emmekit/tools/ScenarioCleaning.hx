@@ -1,11 +1,7 @@
 package emmekit.tools;
 
-import jonas.MathExtension;
-import emmekit.Node;
-import emmekit.Scenario;
-
 private typedef ScenarioCleaningFilter = Node -> Bool;
- 
+
 class ScenarioCleaning {
 
 	/**
@@ -18,7 +14,7 @@ class ScenarioCleaning {
 			if ( filter( n ) )
 				n.delete_after_joining();
 	}
-	
+
 	/**
 	 * Simple cosmetic points removal, with the following filter:
 	 * !centroid && !start_of_route && !end_of_route
@@ -49,5 +45,5 @@ class ScenarioCleaning {
 				;
 			} );
 	}
-	
+
 }

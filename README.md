@@ -1,5 +1,5 @@
-EmmeKit
-=======
+EmmeKit for Haxe
+================
 
-_a toolkit for reading, manipulating and writing Emme networks._
+_A toolkit for reading, manipulating and writing Emme networks._
 

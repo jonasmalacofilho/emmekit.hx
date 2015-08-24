@@ -1,9 +1,7 @@
 package emmekit;
 
-import emmekit.Element;
-
 class LinkInflections implements ArrayAccess<ShapePoint> {
-	
+
 	var data: Array<ShapePoint>;
 	public var length( get_length, null ): Int;
 

@@ -1,77 +1,66 @@
 package emmekit;
 
-import haxe.io.Bytes;
-import haxe.io.BytesBuffer;
-import haxe.io.BytesData;
-import haxe.io.BytesInput;
-import haxe.io.BytesOutput;
-import haxe.io.Eof;
-import haxe.io.Input;
-import haxe.io.Output;
-import jonas.ds.queue.SimpleFIFO;
-import jonas.ds.RjTree;
-import jonas.macro.Error;
-import jonas.Maybe;
 import emmekit.Element;
-import emmekit.Line;
-import emmekit.Link;
-import emmekit.Node;
-import emmekit.ExtraAttributeTable;
-using jonas.MathExtension;
-using jonas.LazyLambda;
+import haxe.io.*;
+import jonas.Maybe;
+import jonas.ds.RjTree;
+import jonas.ds.queue.SimpleFIFO;
+import jonas.macro.Error;
 using Math;
 using Std;
 using emmekit.Util;
+using jonas.LazyLambda;
 using jonas.sort.Heapsort;
+
 private typedef L = jonas.LazyLambda;
 
 class Scenario {
 
 	public static inline var INVALID_ID : TElementId = -1;
-	
+
 	public var scenario_name : String;
 	public var last_id( default, null ) : TElementId;
-	
+
 	var nodes : Map<Int, Node>;
 	public var node_attributes( default, null ) : ExtraAttributeTable<Dynamic>;
 	public var node_count( default, null ) : Int;
 	var node_r_tree : RjTree<Node>;
-	
+
 	var links : Map<String, Link>;
 	public var link_attributes( default, null ) : ExtraAttributeTable<Dynamic>;
 	public var link_count( default, null ) : Int;
 	var link_r_tree : RjTree<Link>;
-	
+
 	var lines : Map<String, Line>;
 	public var line_attributes( default, null ) : ExtraAttributeTable<Dynamic>;
 	public var line_count( default, null ) : Int;
-	
+
 	public var segment_attributes( default, null ) : ExtraAttributeTable<Dynamic>;
 
 	public function new( scenario_name = 'Unnamed scenario' ) {
 		this.scenario_name = scenario_name;
 		last_id = INVALID_ID;
-		
+
 		nodes = new Map();
 		node_attributes = new ExtraAttributeTable();
 		node_count = 0;
 		node_r_tree = new RjTree();
-		
+
 		links = new Map();
 		link_attributes = new ExtraAttributeTable();
 		link_count = 0;
 		link_r_tree = new RjTree();
-		
+
 		lines = new Map();
 		line_attributes = new ExtraAttributeTable();
 		line_count = 0;
-		
+
 		segment_attributes = new ExtraAttributeTable();
 	}
-	
+
 	public function copy( scenario_name = 'Unnamed scenario' ) {
 		var x = new Scenario( scenario_name );
-		
+
 		x.node_attributes = node_attributes.copyStructure();
 		x.link_attributes = link_attributes.copyStructure();
 		x.line_attributes = line_attributes.copyStructure();
@@ -83,7 +72,7 @@ class Scenario {
 			lk.copy( x.node_get( lk.fr.i ), x.node_get( lk.to.i ) );
 		for ( li in lines )
 			li.copy( x, li.line, true );
-		
+
 		// dynamic overloadable functions
 		x.error = error;
 		x.warning = warning;
@@ -107,57 +96,57 @@ class Scenario {
 		x.segment_join_us1 = segment_join_us1;
 		x.segment_join_us2 = segment_join_us2;
 		x.segment_join_us3 = segment_join_us3;
-		
+
 		return x;
 	}
-	
+
 	public dynamic function error( msg : String ) : Void { throw '@ scenario ' + scenario_name + ': ' + msg; }
-	
+
 	public dynamic function warning( msg : String ) : Void { trace( 'Warning: ' + msg ); }
-	
+
 	public dynamic function print( msg : String ) : Void { trace( msg ); }
-	
+
 	public dynamic function distance( ax : Float, ay : Float, bx : Float, by : Float ) : Float {
 		error( 'Missing implementation for the distance function' );
 		return Math.NaN;
 	}
-	
+
 	public function rev_distance_dx( xi : Float, yi : Float, value : Float, over_scan = .1 ) : Float {
 		return ( 1. + over_scan ) * value / distance( xi - .5, yi, xi + .5, yi );
 	}
-	
+
 	public function rev_distance_dy( xi : Float, yi : Float, value : Float, over_scan = .1 ) : Float {
 		return ( 1. + over_scan ) * value / distance( xi, yi - .5, xi, yi + .5 );
 	}
-	
+
 	/** Nodes basic API **/
-	
+
 	public dynamic function node_error( key : Dynamic = '?', msg : String ) : Void {
 		error( '@ node ' + key + ': ' + msg );
 	}
-	
+
 	public inline function node_iterator() : Iterator<Node> { return nodes.iterator(); }
-	
+
 	public inline function node_exists( i : TNodeNumber ) : Bool { return nodes.exists( i ); }
-	
+
 	public inline function node_get( i : TNodeNumber ) : Node {
 		if ( !node_exists( i ) )
 			node_error( i, 'Node does not exist' );
 		return nodes.get( i );
 	}
-	
+
 	public inline function node_add( is_zone : Bool, i : TNodeNumber, xi : Float, yi : Float, ui1 : Float = Node.DEFAULT_USER_DATA_VALUE, ui2 : Float = Node.DEFAULT_USER_DATA_VALUE, ui3 : Float = Node.DEFAULT_USER_DATA_VALUE, lab = Node.DEFAULT_LABEL ) : Node {
 		return new Node( this, is_zone, i, xi, yi, ui1, ui2, ui3, lab );
 	}
-	
+
 	public inline function node_copy( i : TNodeNumber, is_zone : Bool, j : TNodeNumber, xj : Float, yj : Float ) : Node {
 		return node_get( i ).copy( this, is_zone, j, xj, yj );
 	}
-	
+
 	public inline function node_remove( i : TNodeNumber ) : Bool {
 		return node_get( i ).delete();
 	}
-	
+
 	public function node_remove_multiple( ? delete : Node -> Bool ) : Int {
 		var c = 0;
 		if ( null == delete )
@@ -169,11 +158,11 @@ class Scenario {
 					c += x.delete() ? 1 : 0;
 		return c;
 	}
-	
+
 	public inline function node_distance( i : TNodeNumber, j : TNodeNumber ) : Float {
 		return node_get( i ).distance_to( node_get( j ) );
 	}
-	
+
 	public function node_register( a : Node ) : TElementId {
 		if ( nodes.exists( a.i ) ) {
 			node_error( a.i, 'Node already exists' );
@@ -185,7 +174,7 @@ class Scenario {
 		node_count++;
 		return ++last_id;
 	}
-	
+
 	public function node_unregister( a : Node ) : Bool {
 		if ( nodes.remove( a.i ) ) {
 			node_r_tree.removePoint( a.xi, a.yi, a );
@@ -195,13 +184,13 @@ class Scenario {
 		node_error( a.i, 'Node was not properly registered' );
 		return false;
 	}
-	
+
 	public function node_search_rectangle( xi : Float, yi : Float, xj : Float, yj : Float ) : List<Node> {
 		if ( xj < xi || yj < yi )
 			error( 'xj < xi || yj < yi' );
 		return Lambda.list( { iterator : node_r_tree.search.bind( xi, yi, xj - xi, yj - yi ) } );
 	}
-	
+
 	public function node_search_radius( xi : Float, yi : Float, radius : Float ) : List<Node> {
 		var dx = rev_distance_dx( xi, yi, radius, .1 );
 		var dy = rev_distance_dy( xi, yi, radius, .1 );
@@ -213,38 +202,38 @@ class Scenario {
 		}
 		return r;
 	}
-	
+
 	/** Links basic API **/
-	
+
 	public dynamic function link_error( key : Dynamic = '?-?', msg : String ) : Void {
 		error( '@ link ' + key + ': ' + msg );
 	}
-	
+
 	public inline function link_iterator() : Iterator<Link> { return links.iterator(); }
-	
+
 	public inline function link_exists( i : TNodeNumber, j : TNodeNumber ) : Bool { return links.exists( link_key( i, j ) ); }
-	
+
 	public inline function link_get( i : TNodeNumber, j : TNodeNumber ) : Link {
 		var k = link_key( i, j );
 		if ( !links.exists( k ) )
 			link_error( k, 'Link does not exist' );
 		return links.get( k );
 	}
-	
+
 	public inline function link_add( i : TNodeNumber, j : TNodeNumber, len : Maybe<Float>, mod : String, typ : Int, lan = Link.DEFAULT_LANES, vdf = Link.DEFAULT_VDF, ul1 : Float = Link.DEFAULT_USER_DATA_VALUE, ul2 : Float = Link.DEFAULT_USER_DATA_VALUE, ul3 : Float = Link.DEFAULT_USER_DATA_VALUE, ?shape : LinkInflections ) : Link {
 		if ( shape == null )
 			shape = new LinkInflections( [] );
 		return new Link( node_get( i ), node_get( j ), len, mod, typ, lan, vdf, ul1, ul2, ul3, shape );
 	}
-	
+
 	public inline function link_copy( i : TNodeNumber, j : TNodeNumber, i2 : TNodeNumber, j2 : TNodeNumber ) : Link {
 		return link_get( i, j ).copy( node_get( i2 ), node_get( j2 ) );
 	}
-	
+
 	public inline function link_remove( i : TNodeNumber, j : TNodeNumber ) : Bool {
 		return link_get( i, j ).delete();
 	}
-	
+
 	public function link_remove_multiple( ? delete : Link -> Bool ) : Int {
 		var c = 0;
 		if ( null == delete )
@@ -256,7 +245,7 @@ class Scenario {
 					c += x.delete() ? 1 : 0;
 		return c;
 	}
-	
+
 	public function link_add_to_rtree( a: Link ): Void {
 		Link.add_to_rtree( a, link_r_tree );
 	}
@@ -276,7 +265,7 @@ class Scenario {
 	public function link_remove_from_rtree( a: Link ): Int {
 		return Link.remove_from_rtree( a, link_r_tree );
 	}
-	
+
 	public function link_unregister( a : Link ) : Bool {
 		if ( links.remove( a.key ) ) {
 			link_remove_from_rtree( a );
@@ -286,85 +275,85 @@ class Scenario {
 		link_error( a.key, 'Link was not properly registered' );
 		return false;
 	}
-	
+
 	public function link_search_rectangle( xi : Float, yi : Float, xj : Float, yj : Float ) : List<Link> {
 		if ( xj < xi || yj < yi )
 			error( 'xj < xi || yj < yi' );
 		return Lambda.list( { iterator : link_r_tree.search.bind( xi, yi, xj - xi, yj - yi ) } );
 	}
-	
+
 	public function link_search_2d_interval( xi : Float, yi : Float, width : Float, height : Float, over_scan = .1 ) : List<Link> {
 		var dx = rev_distance_dx( xi, yi, width, over_scan );
 		var dy = rev_distance_dy( xi, yi, height, over_scan );
 		return Lambda.list( { iterator : link_r_tree.search.bind( xi - dx, yi - dy, dx * 2., dy * 2. ) } );
 	}
-	
+
 	static inline function link_key( i : TNodeNumber, j : TNodeNumber ) : TLinkKey { return Element.link_key( i, j ); }
-	
+
 	/** Link join API: defaults to average( a, b ) **/
-	
+
 	public dynamic function link_join_len( a : Link, b : Link, ?e : Link ) : Maybe<Float> {
 		if ( null != e )
 			return just( ( a.len + b.len + e.len ) * .5 );
 		else
 			return just( a.len + b.len );
 	}
-	
+
 	public dynamic function link_join_mod( a : Link, b : Link, ?e : Link ) : String {
 		if ( null != e )
 			return Link.modes_add( e.mod, a.mod + b.mod );
 		else
 			return Link.modes_add( a.mod, b.mod );
 	}
-	
+
 	public dynamic function link_join_lan( a : Link, b : Link, ?e : Link ) : Float {
 		return Math.min( 9.9, ( a.lan * a.len + b.lan * b.len ) / ( a.len + b.len ) + ( ( null != e ) ? e.lan : 0. ) );
 	}
-	
+
 	public dynamic function link_join_typ( a : Link, b : Link, ?e : Link ) : Int {
 		if ( null != e )
 			return e.typ;
 		else
 			return Math.min( a.typ, b.typ ).floor();
 	}
-	
+
 	public dynamic function link_join_vdf( a : Link, b : Link, ?e : Link ) : Int {
 		if ( null != e )
 			return e.vdf;
 		else
 			return Math.min( a.vdf, b.vdf ).floor();
 	}
-	
+
 	public dynamic function link_join_ul1( a : Link, b : Link, ?e : Link ) : Float {
 		if ( null != e )
 			return ( a.ul1 * a.len + b.ul1 * b.len + e.ul1 * e.len ) / ( a.len + b.len + e.len );
 		else
 			return ( a.ul1 * a.len + b.ul1 * b.len ) / ( a.len + b.len );
 	}
-	
+
 	public dynamic function link_join_ul2( a : Link, b : Link, ?e : Link ) : Float {
 		if ( null != e )
 			return ( a.ul2 * a.len + b.ul2 * b.len + e.ul2 * e.len ) / ( a.len + b.len + e.len );
 		else
 			return ( a.ul2 * a.len + b.ul2 * b.len ) / ( a.len + b.len );
 	}
-	
+
 	public dynamic function link_join_ul3( a : Link, b : Link, ?e : Link ) : Float {
 		if ( null != e )
 			return ( a.ul3 * a.len + b.ul3 * b.len + e.ul3 * e.len ) / ( a.len + b.len + e.len );
 		else
 			return ( a.ul3 * a.len + b.ul3 * b.len ) / ( a.len + b.len );
 	}
-	
+
 	public dynamic function link_join_shapepoints( a : Link, b : Link, ?e : Link ) : LinkInflections {
 		if ( null != e )
 			return e.inflections.copy();
 		else
 			return a.inflections.concat( new LinkInflections( [ new ShapePoint( b.fr.xi, b.fr.yi ) ] ) ).concat( b.inflections );
 	}
-	
+
 	public dynamic function link_join_complementary( a : Link, b : Link, x : Link, created: Bool ) : Void { }
-	
+
 	public function link_join( i : TNodeNumber, j : TNodeNumber, k : TNodeNumber ) : Array<Link> {
 		var a = link_get( i, k );
 		var b = link_get( k, j );
@@ -390,17 +379,17 @@ class Scenario {
 			return [ p ];
 		}
 	}
-	
+
 	/** Lines basic API **/
-	
+
 	public dynamic function line_error( key : Dynamic = '?', msg : String ) : Void {
 		error( '@ line ' + key + ': ' + msg );
 	}
-	
+
 	public inline function line_iterator() : Iterator<Line> { return lines.iterator(); }
-	
+
 	public inline function line_exists( line : TLineName ) : Bool { return lines.exists( line ); }
-	
+
 	public inline function line_get( line : TLineName ) : Line {
 		if ( !lines.exists( line ) )
 			line_error( line, 'Line does not exist' );
@@ -410,15 +399,15 @@ class Scenario {
 	public inline function line_add( line : String, mode : String, veh : Int, headway : Float, speed : Float, descr : String, ut1 : Float = Line.USER_DATA_PRECISION, ut2 : Float = Line.USER_DATA_PRECISION, ut3 : Float = Line.USER_DATA_PRECISION ) : Line {
 		return new Line( this, line, mode, veh, headway, speed, descr, ut1, ut2, ut3 );
 	}
-	
+
 	public inline function line_copy( line : TLineName, line2 : TLineName, copy_segments : Bool ) : Line {
 		return line_get( line ).copy( this, line2, copy_segments );
 	}
-	
+
 	public function line_remove( line : TLineName ) : Bool {
 		return line_get( line ).delete();
 	}
-	
+
 	public function line_remove_multiple( ? delete : Line -> Bool ) : Int {
 		var c = 0;
 		if ( null == delete )
@@ -430,7 +419,7 @@ class Scenario {
 					c += x.delete() ? 1 : 0;
 		return c;
 	}
-	
+
 	public function line_register( a : Line ) : TElementId {
 		if ( lines.exists( a.line ) ) {
 			line_error( a.line, 'Line already exists' );
@@ -440,7 +429,7 @@ class Scenario {
 		line_count++;
 		return ++last_id;
 	}
-	
+
 	public function line_unregister( a : Line ) : Bool {
 		if ( lines.remove( a.line ) ) {
 			line_count--;
@@ -449,25 +438,25 @@ class Scenario {
 		line_error( a.line, 'Line was not properly registered' );
 		return false;
 	}
-	
+
 	/** Line segments basic API **/
-	
+
 	public dynamic function segment_error( key : Dynamic = '?', msg : String ) : Void {
 		error( '@ segment ' + key + ': ' + msg );
 	}
-	
+
 	public inline function segment_add( line : TLineName, pos : Int, node : TNodeNumber, board = true, alight = true, dwt = 0.01, ttf = 0, us1 = 0., us2 = 0., us3 = 0. ) : Segment {
 		return new Segment( line_get( line ), pos, node_get( node ), board, alight, dwt, ttf, us1, us2, us3 );
 	}
-	
+
 	public inline function segment_push( line : TLineName, node : TNodeNumber, board = true, alight = true, dwt = 0.01, ttf = 0, us1 = 0., us2 = 0., us3 = 0. ) : Segment {
 		return line_get( line ).segment_push( node_get( node ), board, alight, dwt, ttf, us1, us2, us3 );
 	}
-	
+
 	public inline function segment_copy( line : TLineName, pos : Int, line2 : TLineName, pos2 : Int ) : Segment {
 		return line_get( line ).segment_at( pos ).copy( line_get( line2 ), pos2 );
 	}
-	
+
 	public function segment_count() : Int {
 		return lines.fold( $pre + $x.segment_count(), 0 );
 	}
@@ -475,26 +464,26 @@ class Scenario {
 	public function segment_register( a : Segment ) : TElementId {
 		return ++last_id;
 	}
-	
+
 	public function segment_unregister( a : Segment ) : Bool {
 		return true;
 	}
-	
+
 	public dynamic function segment_join_ttf( a : Segment, b : Segment ) : Int { return Math.min( a.ttf, b.ttf ).floor(); }
-	
+
 	public dynamic function segment_join_us1( a : Segment, b : Segment ) : Float { return ( a.us1 + b.us1 ) * .5; }
-	
+
 	public dynamic function segment_join_us2( a : Segment, b : Segment ) : Float { return ( a.us2 + b.us2 ) * .5; }
-	
+
 	public dynamic function segment_join_us3( a : Segment, b : Segment ) : Float { return ( a.us3 + b.us3 ) * .5; }
 
-	
+
 	/** Input API **/
-	
+
 	public function eff_read( i : Input ) : Input {
-		
+
 		var splitrx = ~/[ ]+/g;
-		
+
 		var dictionary = new Map();
 		dictionary.set( 'i', 'i' );
 		dictionary.set( 'inode', 'i' );
@@ -535,7 +524,7 @@ class Scenario {
 		dictionary.set( 'ut2', 'ut2' );
 		dictionary.set( 'ut3', 'ut3' );
 		dictionary.set( 'vertex', 'vertex' );
-		
+
 		var node_next = new Map();
 		node_next.set( '', 'centroid' );
 		node_next.set( 'centroid', 'i' );
@@ -546,7 +535,7 @@ class Scenario {
 		node_next.set( 'ui2', 'ui3' );
 		node_next.set( 'ui3', 'lab' );
 		node_next.set( 'lab', '' );
-		
+
 		var link_next = new Map();
 		link_next.set( '', 'i' );
 		link_next.set( 'i', 'j' );
@@ -559,7 +548,7 @@ class Scenario {
 		link_next.set( 'ul1', 'ul2' );
 		link_next.set( 'ul2', 'ul3' );
 		link_next.set( 'ul3', '' );
-		
+
 		var line_next = new Map();
 		line_next.set( '', 'line' );
 		line_next.set( 'line', 'mod' );
@@ -571,7 +560,7 @@ class Scenario {
 		line_next.set( 'ut1', 'ut2' );
 		line_next.set( 'ut2', 'ut3' );
 		line_next.set( 'ut3', '' );
-		
+
 		var shapepoint_next = new Map();
 		shapepoint_next.set( '', 'i' );
 		shapepoint_next.set( 'i', 'j' );
@@ -581,10 +570,10 @@ class Scenario {
 		shapepoint_next.set( 'yi', '' );
 
 		var txt : String;
-		
+
 		var rt = TUnknown; // reading type
 		var op = OUnknown;
-		
+
 		var dfseg : Dynamic = cast { };
 		dfseg.dfboard = Segment.DEFAULT_BOARD;
 		dfseg.dfalight = Segment.DEFAULT_ALIGHT;
@@ -602,9 +591,9 @@ class Scenario {
 		dfseg.us3 = Segment.DEFAULT_USER_DATA_VALUE;
 		var seg : Dynamic = cast { };
 		seg = dfseg;
-		
+
 		var queue = new SimpleFIFO( 1 );
-		
+
 		var save_segment_value = function( name : String, val : Dynamic, default_value : Bool ) : Void {
 			Reflect.setField( seg, name, val );
 			if ( default_value )
@@ -616,9 +605,9 @@ class Scenario {
 				line.segment_push( node_get( queue.get() ), seg.board, seg.alight, seg.dwt, seg.ttf, seg.us1, seg.us2, seg.us3 );
 			seg = dfseg;
 		};
-		
+
 		var dwtrx : EReg = ~/^([<>#+])?([0-9.-]+)$/;
-		
+
 		var parse_dwt = function( s : String, default_value : Bool ) {
 			if ( dwtrx.match( s ) ) {
 				switch ( dwtrx.matched( 1 ) ) {
@@ -652,7 +641,7 @@ class Scenario {
 			else
 				error( 'Cannot understand this dwt: ' + s );
 		};
-		
+
 		var tempInflections: Map<Int, Array<ShapePoint>>;
 
 		var line_number = 0;
@@ -665,12 +654,12 @@ class Scenario {
 				txt = i.readLine();
 				line_number++;
 				if ( 0 == txt.length ) continue;
-				
+
 				// operation and t record processing
 				switch ( txt.charAt( 0 ) ) {
 					case 'c', '/' :
 						op = OUnknown;
-						continue; 
+						continue;
 					case 't' :
 						if ( rt == TShapePoint ) {
 							for ( link in links )
@@ -727,11 +716,11 @@ class Scenario {
 							default : continue;
 						}
 				}
-				
+
 				// other record processing
 				switch ( rt ) {
 					case TNode :
-						
+
 						var values : Dynamic<String> = cast { };
 						//trace( txt );
 						//trace( txt.charAt( 1 ) );
@@ -752,7 +741,7 @@ class Scenario {
 							//trace( { n : name, v : val } );
 							Reflect.setField( values, name, val );
 						}
-						
+
 						switch ( op ) {
 							case OAdd :
 								if ( !Reflect.hasField( values, 'centroid' ) ) error( 'Missing centroid indication\n' + txt );
@@ -783,9 +772,9 @@ class Scenario {
 									}
 							default : // nothing to do here
 						}
-						
+
 					case TLink :
-						
+
 						//trace( txt );
 						var values : Dynamic<String> = cast { };
 						var two_sided = '=' == txt.charAt( 1 );
@@ -806,7 +795,7 @@ class Scenario {
 							Reflect.setField( values, name, val );
 						}
 						//trace( '"' + Reflect.field( values, 'j' ) + '"' );
-						
+
 						switch ( op ) {
 							case OAdd :
 								if ( !Reflect.hasField( values, 'i' ) ) error( 'Missing i\n' + txt );
@@ -858,9 +847,9 @@ class Scenario {
 									}
 							default : // nothing to do here
 						}
-						
+
 					case TLine :
-						
+
 						//trace( txt );
 						//trace( txt.substr( 1 ) );
 						//trace( txt.substr( 1 ).emmeSplit( ' ' ) );
@@ -894,7 +883,7 @@ class Scenario {
 								if ( !Reflect.hasField( values, 'hdw' ) ) error( 'Missing headway\n' + txt );
 								if ( !Reflect.hasField( values, 'speed' ) ) error( 'Missing speed\n' + txt );
 								if ( !Reflect.hasField( values, 'descr' ) ) error( 'Missing descr\n' + txt );
-								rt = TSegment( 
+								rt = TSegment(
 									line_add(
 										values.line,
 										values.mod,
@@ -926,7 +915,7 @@ class Scenario {
 						}
 
 					case TSegment( line ) :
-						
+
 						var values : Dynamic<String> = cast { };
 						for ( p in txt.substr( 1 ).split( ' ' ) ) {
 							if ( '' == p ) continue;
@@ -1022,9 +1011,9 @@ class Scenario {
 
 					default : error( 'Unknown record type: ' + rt );
 				}
-				
+
 			}
-			
+
 		}
 		catch ( e : Eof ) { }
 
@@ -1035,24 +1024,24 @@ class Scenario {
 
 		error = default_error;
 		warning = default_warning;
-		
+
 		#if RJTREE_DEBUG
 		print( 'Nodes RTree length = ${node_r_tree.length}, max depth = ${node_r_tree.maxDepth()}' );
 		print( 'Links RTree length = ${link_r_tree.length}, max depth = ${link_r_tree.maxDepth()}' );
 		#end
-		
+
 		return i;
 	}
 
 	/** Output API **/
-	
+
 	public function eff_write_nodes( o : Output, header = '', ?filter : Node -> Bool ) : Output {
 		print( 'Writing nodes' );
 		if ( null == filter ) filter = function( x ) { return true; };
-		
+
 		var buf = new StringBuf();
 		buf.add( 'c ' );  buf.add( header.split( '\n' ).join( '\nc ' ) ); buf.add( '\n' );
-		
+
 		// nodes
 		buf.add( 't nodes\n' );
 		var xs = [];
@@ -1064,18 +1053,18 @@ class Scenario {
 			x.print_to_buffer( buf, true, true );
 			buf.add( '\n' );
 		}
-		
+
 		o.writeString( buf.toString() );
 		return o;
 	}
-	
+
 	public function eff_write_links( o : Output, header = '', ?filter : Link -> Bool ) : Output {
 		print( 'Writing links' );
 		if ( null == filter ) filter = function( x ) { return true; };
-		
+
 		var buf = new StringBuf();
 		buf.add( 'c ' );  buf.add( header.split( '\n' ).join( '\nc ' ) ); buf.add( '\n' );
-		
+
 		// links
 		buf.add( 't links\n' );
 		var xs = [];
@@ -1087,18 +1076,18 @@ class Scenario {
 			x.print_to_buffer( buf, true, true );
 			buf.add( '\n' );
 		}
-		
+
 		o.writeString( buf.toString() );
 		return o;
 	}
-	
+
 	public function eff_write_lines( o : Output, header = '', ?filter : Line -> Bool ) : Output {
 		print( 'Writing lines' );
 		if ( null == filter ) filter = function( x ) { return true; };
-		
+
 		var buf = new StringBuf();
 		buf.add( 'c ' );  buf.add( header.split( '\n' ).join( '\nc ' ) ); buf.add( '\n' );
-		
+
 		buf.add( 't lines\n' );
 		var xs = [];
 		for ( x in lines )
@@ -1109,15 +1098,15 @@ class Scenario {
 			x.print_to_buffer( buf, true, true, 'no' );
 			buf.add( '\n' );
 		}
-		
+
 		o.writeString( buf.toString() );
 		return o;
 	}
-	
+
 	public function eff_write_shape_points( o : Output, header = '', ?filter : Link -> Bool ) : Output {
 		print( 'Writing shape points transactions' );
 		if ( null == filter ) filter = function( x ) { return true; }
-		
+
 		var buf = new StringBuf();
 		if ( header.length > 0 ) {
 			buf.add( 'c ' );
@@ -1134,11 +1123,11 @@ class Scenario {
 			for ( sp in x.inflections )
 				buf.add( 'a $id ${++i} ${sp}\n' );
 		}
-		
+
 		o.writeString( buf.toString() );
 		return o;
 	}
-	
+
 	/**
 	 * Import node attribute (overwriting)
 	 */
@@ -1155,7 +1144,7 @@ class Scenario {
 				node_get( key( regex ) ).set( name, value( regex ) );
 		return i;
 	}
-	
+
 	/**
 	 * Import link attribute (overwriting)
 	 */
@@ -1176,7 +1165,7 @@ class Scenario {
 			}
 		return i;
 	}
-	
+
 	/**
 	 * Import line attribute (overwriting)
 	 */
@@ -1193,7 +1182,7 @@ class Scenario {
 				line_get( key( regex ) ).set( name, value( regex ) );
 		return i;
 	}
-	
+
 	/**
 	 * Export note attribute
 	 */
@@ -1215,7 +1204,7 @@ class Scenario {
 		o.writeString( b.toString() );
 		return o;
 	}
-	
+
 	/**
 	 * Export link attribute
 	 */
@@ -1239,7 +1228,7 @@ class Scenario {
 		o.writeString( b.toString() );
 		return o;
 	}
-	
+
 	/**
 	 * Export line attribute
 	 */
@@ -1286,7 +1275,7 @@ class Scenario {
 		if ( line_count > 0 )
 			warning( 'line serialization not implemented, all lines have been ignored' );
 		s.serialize( 0 );
-		
+
 		// print( 'serializing node extra attribute table' );
 		if ( node_attributes.atts().count() > 0 )
 			warning( 'node extra attribute table not implemented, all key,values pairs have been ignored' );
@@ -1322,16 +1311,16 @@ class Scenario {
 		node_attributes = new ExtraAttributeTable();
 		node_count = 0;
 		node_r_tree = new RjTree();
-		
+
 		links = new Map();
 		link_attributes = new ExtraAttributeTable();
 		link_count = 0;
 		link_r_tree = new RjTree();
-		
+
 		lines = new Map();
 		line_attributes = new ExtraAttributeTable();
 		line_count = 0;
-		
+
 		segment_attributes = new ExtraAttributeTable();
 
 		print( 'unserializing nodes' );
@@ -1365,8 +1354,8 @@ class Scenario {
 		SERIALIZATION_INSTANCE = null;
 	}
 
-	
-	
+
+
 }
 
 private enum ElementType {
